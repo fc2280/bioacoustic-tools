@@ -1,158 +1,165 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "9a0a4362-2019-463d-82d6-0dd2e5729d1a",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "#!/usr/bin/env python\n",
-    "\n",
-    "# ==============================\n",
-    "# Import librerie\n",
-    "# ==============================\n",
-    "\n",
-    "import pandas as pd\n",
-    "from pathlib import Path\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Header\n",
-    "# ==============================\n",
-    "\n",
-    "print(\"\\n==============================\")\n",
-    "print(\"Merge Chunk Excel Files\")\n",
-    "print(\"==============================\\n\")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Input utente\n",
-    "# ==============================\n",
-    "\n",
-    "# directory contenente excel annotati\n",
-    "input_dir = input(\n",
-    "    \"Directory with annotation Excel files: \"\n",
-    ").strip('\"')\n",
-    "\n",
-    "# directory output\n",
-    "output_dir = input(\n",
-    "    \"Output directory: \"\n",
-    ").strip('\"')\n",
-    "\n",
-    "# nome file output\n",
-    "output_name = input(\n",
-    "    \"Output file name (e.g. beluga_merged.xlsx): \"\n",
-    ")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Costruzione path\n",
-    "# ==============================\n",
-    "\n",
-    "input_path = Path(input_dir)\n",
-    "output_path = Path(output_dir)\n",
-    "\n",
-    "\n",
-    "# crea directory output se non esiste\n",
-    "output_path.mkdir(\n",
-    "    parents=True,\n",
-    "    exist_ok=True\n",
-    ")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Trova file Excel\n",
-    "# ==============================\n",
-    "\n",
-    "excel_files = sorted(\n",
-    "    input_path.glob(\"*.xlsx\")\n",
-    ")\n",
-    "\n",
-    "print(\n",
-    "    f\"\\nFound {len(excel_files)} Excel files\"\n",
-    ")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Lista dataframe\n",
-    "# ==============================\n",
-    "\n",
-    "dfs = []\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Loop file\n",
-    "# ==============================\n",
-    "\n",
-    "for file in excel_files:\n",
-    "\n",
-    "    print(f\"Loading: {file.name}\")\n",
-    "\n",
-    "    df = pd.read_excel(file)\n",
-    "\n",
-    "    dfs.append(df)\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Merge dataframe\n",
-    "# ==============================\n",
-    "\n",
-    "merged_df = pd.concat(\n",
-    "    dfs,\n",
-    "    ignore_index=True\n",
-    ")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Sorting finale\n",
-    "# ==============================\n",
-    "\n",
-    "merged_df = merged_df.sort_values(\n",
-    "    [\"year\", \"recording\", \"level\", \"chunk_id\"]\n",
-    ")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Salvataggio\n",
-    "# ==============================\n",
-    "\n",
-    "final_output = output_path / output_name\n",
-    "\n",
-    "merged_df.to_excel(\n",
-    "    final_output,\n",
-    "    index=False\n",
-    ")\n",
-    "\n",
-    "\n",
-    "# ==============================\n",
-    "# Fine\n",
-    "# ==============================\n",
-    "\n",
-    "print(\"\\nMerge completed\")\n",
-    "print(f\"Saved: {final_output}\")"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python (edansa_env)",
-   "language": "python",
-   "name": "edansa_env"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.10.20"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+#!/usr/bin/env python
+
+# ==============================
+# Import librerie
+# ==============================
+
+import pandas as pd
+from pathlib import Path
+
+
+# ==============================
+# Header
+# ==============================
+
+print("\n==============================")
+print("Merge Chunk Excel Files")
+print("==============================\n")
+
+
+# ==============================
+# Default directories
+# ==============================
+
+default_input = "./annotations"
+default_output = "./merged"
+
+
+# ==============================
+# Input utente
+# ==============================
+
+input_dir = input(
+    f"Directory with annotation Excel files [{default_input}]: "
+).strip('"')
+
+if input_dir == "":
+    input_dir = default_input
+
+
+output_dir = input(
+    f"Output directory [{default_output}]: "
+).strip('"')
+
+if output_dir == "":
+    output_dir = default_output
+
+
+output_name = input(
+    "Output file name [beluga_merged.xlsx]: "
+)
+
+if output_name == "":
+    output_name = "beluga_merged.xlsx"
+
+
+# ==============================
+# Costruzione path
+# ==============================
+
+input_path = Path(input_dir)
+output_path = Path(output_dir)
+
+
+# ==============================
+# Controllo directory
+# ==============================
+
+if not input_path.exists():
+    print("Input directory not found")
+    exit()
+
+output_path.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+
+# ==============================
+# Trova file Excel
+# ==============================
+
+excel_files = sorted(
+    input_path.glob("*.xlsx")
+)
+
+if len(excel_files) == 0:
+    print("No Excel files found")
+    exit()
+
+print(f"\nFound {len(excel_files)} Excel files")
+
+
+# ==============================
+# Lista dataframe
+# ==============================
+
+dfs = []
+
+
+# ==============================
+# Loop file
+# ==============================
+
+for file in excel_files:
+
+    print(f"Loading: {file.name}")
+
+    df = pd.read_excel(file)
+
+    dfs.append(df)
+
+
+# ==============================
+# Merge dataframe
+# ==============================
+
+print("\nMerging files...")
+
+merged_df = pd.concat(
+    dfs,
+    ignore_index=True
+)
+
+
+# ==============================
+# Sorting
+# ==============================
+
+sort_columns = [
+    col for col in [
+        "year",
+        "recording",
+        "level",
+        "chunk_id"
+    ]
+    if col in merged_df.columns
+]
+
+if sort_columns:
+    merged_df = merged_df.sort_values(sort_columns)
+
+
+merged_df = merged_df.reset_index(drop=True)
+
+
+# ==============================
+# Save
+# ==============================
+
+final_output = output_path / output_name
+
+merged_df.to_excel(
+    final_output,
+    index=False
+)
+
+
+# ==============================
+# Done
+# ==============================
+
+print("\n==============================")
+print("Merge completed")
+print(f"Saved: {final_output}")
+print("==============================")
