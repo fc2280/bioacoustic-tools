@@ -39,10 +39,6 @@ if excel_file:
 
     df = pd.read_excel(excel_file)
 
-    # ======================
-    # Session dataframe
-    # ======================
-
     if "working_df" not in st.session_state:
         st.session_state.working_df = df.copy()
 
@@ -54,7 +50,59 @@ if excel_file:
 
     st.sidebar.title("Navigation")
 
-    recordings = working_df["recording"].unique()
+    # ======================
+    # Year filter
+    # ======================
+
+    years = sorted(
+        working_df["year"]
+        .dropna()
+        .unique()
+    )
+
+    selected_year = st.sidebar.selectbox(
+        "Year",
+        years
+    )
+
+    filtered_df = working_df[
+        working_df["year"] == selected_year
+    ]
+
+    # ======================
+    # Level filter
+    # ======================
+
+    levels = sorted(
+        filtered_df["level"]
+        .dropna()
+        .unique()
+    )
+
+    selected_level = st.sidebar.selectbox(
+        "Level",
+        ["ALL"] + list(levels)
+    )
+
+    if selected_level != "ALL":
+
+        filtered_df = filtered_df[
+            filtered_df["level"] == selected_level
+        ]
+
+    # ======================
+    # Recordings
+    # ======================
+
+    recordings = (
+        filtered_df["recording"]
+        .dropna()
+        .unique()
+    )
+
+    st.sidebar.write(
+        f"Recordings: {len(recordings)}"
+    )
 
     if "rec_index" not in st.session_state:
         st.session_state.rec_index = 0
@@ -69,13 +117,14 @@ if excel_file:
             "Recording",
             0,
             n_rec-1,
-            st.session_state.rec_index
+            min(
+                st.session_state.rec_index,
+                n_rec-1
+            )
         )
 
     else:
-
         st.session_state.rec_index = 0
-        st.sidebar.write("Recording: 0")
 
     rec_prev, rec_next = st.sidebar.columns(2)
 
@@ -93,22 +142,28 @@ if excel_file:
                 st.session_state.rec_index + 1
             )
 
-    selected_recording = recordings[st.session_state.rec_index]
+    selected_recording = recordings[
+        st.session_state.rec_index
+    ]
 
     # ======================
     # Chunk navigation
     # ======================
 
-    rec_df = working_df[
-        working_df["recording"] == selected_recording
+    rec_df = filtered_df[
+        filtered_df["recording"] == selected_recording
     ]
+
+    st.sidebar.write(
+        f"Chunks: {len(rec_df)}"
+    )
 
     if "chunk_index" not in st.session_state:
         st.session_state.chunk_index = 0
 
-    st.sidebar.markdown("### Chunk")
-
     n_chunks = len(rec_df)
+
+    st.sidebar.markdown("### Chunk")
 
     if n_chunks > 1:
 
@@ -123,9 +178,7 @@ if excel_file:
         )
 
     else:
-
         st.session_state.chunk_index = 0
-        st.sidebar.write("Chunk: 0")
 
     chunk_prev, chunk_next = st.sidebar.columns(2)
 
@@ -155,11 +208,14 @@ if excel_file:
 
     with col1:
 
-        st.subheader("Spectrogram")
+        datetime_display = row.get("datetime_str", "")
+
+        st.markdown(
+            f"### 📅 {datetime_display}"
+        )
 
         base = Path(spectrogram_base)
 
-        # nuovo path con year
         image_path = (
             base
             / str(row["year"])
@@ -275,7 +331,6 @@ if excel_file:
 
         st.subheader("Annotation")
 
-        # Raven checkbox
         raven_checked = st.checkbox(
             "Raven checked",
             value=bool(
@@ -289,17 +344,13 @@ if excel_file:
         annotation_cols = [
 
             col for col in working_df.columns
-
             if col.startswith("chunk_")
 
         ]
 
         annotation_values = {}
 
-        # salva raven
-        annotation_values[
-            "raven_checked"
-        ] = raven_checked
+        annotation_values["raven_checked"] = raven_checked
 
         for col in annotation_cols:
 
@@ -309,32 +360,17 @@ if excel_file:
                 "_"," "
             ).title()
 
-            current_value = row.get(
-                col,
-                ""
-            )
+            current_value = row.get(col, "")
 
-            if pd.isna(
-                current_value
-            ):
+            if pd.isna(current_value):
                 current_value = ""
 
             if "presence" in col:
 
                 annotation_values[col] = st.selectbox(
                     label,
-                    [
-                        "",
-                        "unknown",
-                        "present",
-                        "absent"
-                    ],
-                    index=[
-                        "",
-                        "unknown",
-                        "present",
-                        "absent"
-                    ].index(
+                    ["", "unknown", "present", "absent"],
+                    index=["", "unknown", "present", "absent"].index(
                         current_value
                         if current_value in [
                             "unknown",
@@ -349,18 +385,8 @@ if excel_file:
 
                 annotation_values[col] = st.selectbox(
                     label,
-                    [
-                        "",
-                        "low",
-                        "medium",
-                        "high"
-                    ],
-                    index=[
-                        "",
-                        "low",
-                        "medium",
-                        "high"
-                    ].index(
+                    ["", "low", "medium", "high"],
+                    index=["", "low", "medium", "high"].index(
                         current_value
                         if current_value in [
                             "low",
@@ -385,10 +411,6 @@ if excel_file:
                     value=current_value
                 )
 
-        # ======================
-        # Save annotation
-        # ======================
-
         if st.button("Save annotation"):
 
             idx = rec_df.index[
@@ -397,41 +419,27 @@ if excel_file:
 
             for col, value in annotation_values.items():
 
-                working_df.loc[
-                    idx,
-                    col
-                ] = value
+                working_df.loc[idx, col] = value
 
-            st.success(
-                "Annotation saved"
-            )
+            st.success("Annotation saved")
 
     # ======================
-    # Sidebar Save / Export
+    # Sidebar Save
     # ======================
 
     st.sidebar.markdown("---")
+    st.sidebar.markdown("### Data Management")
 
-    st.sidebar.markdown(
-        "### Data Management"
-    )
-
-    if st.sidebar.button(
-        "💾 Save progress"
-    ):
+    if st.sidebar.button("💾 Save progress"):
 
         working_df.to_excel(
             "beluga_chunk_progress.xlsx",
             index=False
         )
 
-        st.sidebar.success(
-            "Progress saved"
-        )
+        st.sidebar.success("Progress saved")
 
-    if st.sidebar.button(
-        "📤 Export Excel"
-    ):
+    if st.sidebar.button("📤 Export Excel"):
 
         output_file = "beluga_chunk_FINAL.xlsx"
 
@@ -440,14 +448,9 @@ if excel_file:
             index=False
         )
 
-        st.sidebar.success(
-            "Excel exported"
-        )
+        st.sidebar.success("Excel exported")
 
-        with open(
-            output_file,
-            "rb"
-        ) as f:
+        with open(output_file, "rb") as f:
 
             st.sidebar.download_button(
                 "Download Excel",
