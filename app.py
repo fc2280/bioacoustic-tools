@@ -4,6 +4,15 @@ from pathlib import Path
 from PIL import Image
 
 # ======================
+# Helpers
+# ======================
+
+def safe_str(x):
+    if pd.isna(x):
+        return ""
+    return str(x)
+
+# ======================
 # Layout pagina
 # ======================
 
@@ -37,7 +46,8 @@ recording_base = st.text_input(
 
 if excel_file:
 
-    df = pd.read_excel(excel_file)
+    # FIX dtype
+    df = pd.read_excel(excel_file, dtype=str)
 
     if "working_df" not in st.session_state:
         st.session_state.working_df = df.copy()
@@ -208,27 +218,29 @@ if excel_file:
 
     with col1:
 
-        datetime_display = row.get("datetime_str", "")
+        datetime_display = safe_str(
+            row.get("datetime_str", "")
+        )
 
         st.markdown(
             f"### 📅 {datetime_display}"
         )
 
-        base = Path(spectrogram_base)
+        base = Path(spectrogram_base).expanduser()
 
         image_path = (
             base
-            / str(row["year"])
-            / str(row["level"])
-            / row["recording"]
-            / row["chunk_file"]
+            / safe_str(row["year"])
+            / safe_str(row["level"])
+            / safe_str(row["recording"])
+            / safe_str(row["chunk_file"])
         )
 
         if not image_path.exists():
             image_path = (
                 base
-                / row["recording"]
-                / row["chunk_file"]
+                / safe_str(row["recording"])
+                / safe_str(row["chunk_file"])
             )
 
         if image_path.exists():
@@ -255,20 +267,20 @@ if excel_file:
 
         st.markdown("### Recording audio")
 
-        rec_base = Path(recording_base)
+        rec_base = Path(recording_base).expanduser()
 
         recording_path = (
             rec_base
-            / str(row["year"])
+            / safe_str(row["year"])
             / "recordings"
-            / row["file_name"]
+            / safe_str(row["file_name"])
         )
 
         if not recording_path.exists():
 
             recording_path = (
                 rec_base
-                / row["file_name"]
+                / safe_str(row["file_name"])
             )
 
         if recording_path.exists():
