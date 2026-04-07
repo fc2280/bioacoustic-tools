@@ -38,13 +38,34 @@ def create_output_folder(file, output_year):
 def get_params(mode):
 
     if mode == "low":
-        return dict(n_fft=65536, hop=8192, fmin=0, fmax=2000, vmin=-120, vmax=-30)
+        return dict(
+            n_fft=65536,
+            hop=8192,
+            fmin=0,
+            fmax=2000,
+            vmin=-120,
+            vmax=-30
+        )
 
     elif mode == "mid":
-        return dict(n_fft=8192, hop=2048, fmin=1000, fmax=19000, vmin=-110, vmax=-30)
+        return dict(
+            n_fft=8192,
+            hop=2048,
+            fmin=1000,
+            fmax=19000,
+            vmin=-110,
+            vmax=-30
+        )
 
     elif mode == "high":
-        return dict(n_fft=2048, hop=512, fmin=20000, fmax=76000, vmin=-100, vmax=-20)
+        return dict(
+            n_fft=2048,
+            hop=512,
+            fmin=20000,
+            fmax=76000,
+            vmin=-100,
+            vmax=-20
+        )
 
 
 def generate_spectrogram(y, sr, save_path, npy_path, mode, start_time):
@@ -57,9 +78,15 @@ def generate_spectrogram(y, sr, save_path, npy_path, mode, start_time):
         hop_length=params["hop"]
     )
 
-    S_db = librosa.amplitude_to_db(np.abs(S), ref=np.max)
+    S_db = librosa.amplitude_to_db(
+        np.abs(S),
+        ref=np.max
+    )
 
-    freqs = librosa.fft_frequencies(sr=sr, n_fft=params["n_fft"])
+    freqs = librosa.fft_frequencies(
+        sr=sr,
+        n_fft=params["n_fft"]
+    )
 
     idx = np.where(
         (freqs >= params["fmin"]) &
@@ -86,12 +113,22 @@ def generate_spectrogram(y, sr, save_path, npy_path, mode, start_time):
     )
 
     y_ticks = np.linspace(0, len(freqs), 5)
-    y_labels = [f"{int(f)}" for f in np.linspace(params["fmin"], params["fmax"], 5)]
+    y_labels = [
+        f"{int(f)}"
+        for f in np.linspace(
+            params["fmin"],
+            params["fmax"],
+            5
+        )
+    ]
 
     plt.yticks(y_ticks, y_labels)
 
     ticks = np.linspace(0, duration, 6)
-    labels = [f"{start_time + t:.0f}" for t in ticks]
+    labels = [
+        f"{start_time + t:.0f}"
+        for t in ticks
+    ]
 
     plt.xticks(ticks, labels)
 
@@ -100,7 +137,6 @@ def generate_spectrogram(y, sr, save_path, npy_path, mode, start_time):
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=200)
-
     plt.close(fig)
 
     del S
@@ -111,23 +147,43 @@ def generate_spectrogram(y, sr, save_path, npy_path, mode, start_time):
 
 def process_recording(args):
 
-    file, mode, chunk_duration, sampling_rate, output_year = args
+    file, mode, chunk_duration, output_year = args
 
-    output_folder = create_output_folder(file, output_year)
+    output_folder = create_output_folder(
+        file,
+        output_year
+    )
 
     info = sf.info(file)
 
+    sampling_rate = info.samplerate
     total_samples = info.frames
-    chunk_samples = int(chunk_duration * sampling_rate)
 
-    for start_sample in range(0, total_samples, chunk_samples):
+    chunk_samples = int(
+        chunk_duration * sampling_rate
+    )
+
+    for start_sample in range(
+        0,
+        total_samples,
+        chunk_samples
+    ):
 
         end_sample = start_sample + chunk_samples
 
         start_time = start_sample / sampling_rate
 
-        save_png = output_folder / f"{file.stem}_chunk_{int(start_time)}_{mode.upper()}.png"
-        save_npy = output_folder / f"{file.stem}_chunk_{int(start_time)}_{mode.upper()}.npy"
+        save_png = output_folder / (
+            f"{file.stem}_chunk_"
+            f"{int(start_time)}_"
+            f"{mode.upper()}.png"
+        )
+
+        save_npy = output_folder / (
+            f"{file.stem}_chunk_"
+            f"{int(start_time)}_"
+            f"{mode.upper()}.npy"
+        )
 
         if save_png.exists():
             continue
@@ -137,6 +193,10 @@ def process_recording(args):
             start=start_sample,
             stop=end_sample
         )
+
+        # Se stereo -> mono
+        if len(y.shape) > 1:
+            y = np.mean(y, axis=1)
 
         if len(y) < chunk_samples * 0.1:
             continue
@@ -160,19 +220,32 @@ if __name__ == "__main__":
     print("Spectrogram Generator PRO")
     print("==============================\n")
 
-    year = input("Enter year (e.g. 2014): ")
+    year = input(
+        "Enter year (e.g. 2014): "
+    )
 
-    base_dir = Path(input("\nEnter recordings directory: ").strip('"'))
+    base_dir = Path(
+        input(
+            "\nEnter recordings directory: "
+        ).strip('"')
+    )
+
     year_dir = base_dir / year
 
-    output_base = Path(input("\nEnter output directory: ").strip('"'))
+    output_base = Path(
+        input(
+            "\nEnter output directory: "
+        ).strip('"')
+    )
 
     print("\nSelect analysis mode:")
     print("1 = LOW frequency")
     print("2 = MID frequency")
     print("3 = HIGH frequency")
 
-    mode_choice = input("\nEnter choice (1/2/3): ")
+    mode_choice = input(
+        "\nEnter choice (1/2/3): "
+    )
 
     if mode_choice == "1":
         mode = "low"
@@ -190,25 +263,48 @@ if __name__ == "__main__":
         print("Invalid choice")
         exit()
 
-    output_year = output_base / year / mode.upper()
+    output_year = (
+        output_base
+        / year
+        / mode.upper()
+    )
 
-    confirm = input("\nProceed? (y/n): ")
+    confirm = input(
+        "\nProceed? (y/n): "
+    )
 
     if confirm.lower() != "y":
         exit()
 
-    audio_files = sorted(list(year_dir.glob("*.wav")))
-    output_year.mkdir(parents=True, exist_ok=True)
+    audio_files = sorted(
+        list(year_dir.glob("*.wav"))
+    )
 
-    sampling_rate = 192000
+    output_year.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
-    # LIMIT RAM USAGE
-    n_cores = max(1, mp.cpu_count() // 2)
+    # LIMIT RAM
+    n_cores = min(
+        4,
+        max(
+            1,
+            mp.cpu_count() // 2
+        )
+    )
 
-    print(f"\nUsing {n_cores} CPU cores\n")
+    print(
+        f"\nUsing {n_cores} CPU cores\n"
+    )
 
     args = [
-        (file, mode, chunk_duration, sampling_rate, output_year)
+        (
+            file,
+            mode,
+            chunk_duration,
+            output_year
+        )
         for file in audio_files
     ]
 
@@ -216,7 +312,10 @@ if __name__ == "__main__":
 
         list(
             tqdm(
-                pool.imap(process_recording, args),
+                pool.imap(
+                    process_recording,
+                    args
+                ),
                 total=len(audio_files)
             )
         )
