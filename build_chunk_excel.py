@@ -72,22 +72,52 @@ for level in levels:
 
             try:
 
-                parts = recording_name.split("_")
+                # FORMAT 1: NYA-B_20200130_093000
+                match1 = re.match(
+                    r"([A-Za-z0-9\-]+)_(\d{8})_(\d{6})",
+                    recording_name
+                )
 
-                site = parts[0]
+                # FORMAT 2: 5498.250607092504
+                match2 = re.match(
+                    r"([A-Za-z0-9\-]+)\.(\d{12})",
+                    recording_name
+                )
 
-                year_val = parts[1][:4]
-                month = parts[1][4:6]
-                day = parts[1][6:8]
+                if match1:
 
-                hour = parts[2][:2]
-                minute = parts[2][2:4]
-                sec = parts[2][4:6]
+                    site = match1.group(1)
+                    date = match1.group(2)
+                    time = match1.group(3)
+
+                    year_val = date[0:4]
+                    month = date[4:6]
+                    day = date[6:8]
+
+                    hour = time[0:2]
+                    minute = time[2:4]
+                    sec = time[4:6]
+
+                elif match2:
+
+                    site = match2.group(1)
+                    datetime_part = match2.group(2)
+
+                    year_val = "20" + datetime_part[0:2]
+                    month = datetime_part[2:4]
+                    day = datetime_part[4:6]
+
+                    hour = datetime_part[6:8]
+                    minute = datetime_part[8:10]
+                    sec = datetime_part[10:12]
 
                 datetime_str = f"{year_val}-{month}-{day} {hour}:{minute}:{sec}"
 
-            except:
-                pass
+            except Exception as e:
+                print(f"Error parsing {recording_name}: {e}")
+
+            if datetime_str is None:
+                print(f"⚠ Could not parse: {recording_name}")
 
             row = {
 
@@ -117,8 +147,6 @@ for level in levels:
 
 print(f"\nTotal chunks found: {len(rows)}")
 
-df = pd.DataFrame(rows)
-
 columns_order = [
 
     "datetime_str",
@@ -143,7 +171,7 @@ columns_order = [
 
 ]
 
-df = df[columns_order]
+df = pd.DataFrame(rows, columns=columns_order)
 
 df = df.sort_values(
     ["recording", "level", "chunk_id"]
